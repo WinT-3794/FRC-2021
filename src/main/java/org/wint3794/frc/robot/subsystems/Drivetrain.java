@@ -4,15 +4,19 @@
 
 package org.wint3794.frc.robot.subsystems;
 
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import net.thefletcher.revrobotics.CANSparkMax;
+import net.thefletcher.revrobotics.enums.MotorType;
 
 import org.wint3794.frc.robot.Robot;
 
 import edu.wpi.first.wpilibj.AnalogGyro;
 import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.PWMSparkMax;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.geometry.Pose2d;
+import edu.wpi.first.wpilibj.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.wpilibj.simulation.AnalogGyroSim;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
 import edu.wpi.first.wpilibj.simulation.EncoderSim;
@@ -27,8 +31,16 @@ public class Drivetrain extends SubsystemBase {
 
   private DifferentialDrivetrainSim m_driveSim;
 
-  private CANSparkMax m_leftMotor = new CANSparkMax(0, MotorType.kBrushless);
-  private CANSparkMax m_rightMotor = new CANSparkMax(1, MotorType.kBrushless);
+  private CANSparkMax m_leftMotor = new CANSparkMax(1, MotorType.kBrushless);
+  private CANSparkMax m_rightMotor = new CANSparkMax(2, MotorType.kBrushless);
+   
+  private CANSparkMax m_leftMotorSlave = new CANSparkMax(3,MotorType.kBrushless); 
+  private CANSparkMax m_rightMotorSlave = new CANSparkMax(4, MotorType.kBrushless);
+
+   /*
+  private PWMSparkMax m_leftMotor = new PWMSparkMax(0);
+  private PWMSparkMax m_rightMotor = new PWMSparkMax(1);
+  */
 
   private DifferentialDrive m_drive = new DifferentialDrive(m_leftMotor, m_rightMotor);
 
@@ -42,12 +54,22 @@ public class Drivetrain extends SubsystemBase {
 
   private Field2d m_field = new Field2d();
 
+  private DifferentialDriveOdometry m_odometry = new DifferentialDriveOdometry(
+    m_gyro.getRotation2d(),
+    new Pose2d(0, 0, new Rotation2d())
+  );
+
   /** Creates a new Drivetrain. */
   public Drivetrain() {
+
+    
+    m_leftMotorSlave.follow(m_leftMotor); 
+    m_rightMotorSlave.follow(m_rightMotor);
+     
     if (Robot.isReal()) {
 
     } else {
-      m_driveSim = new DifferentialDrivetrainSim(DCMotor.getNEO(2), // 2 NEO motors on each side of the drivetrain.
+      m_driveSim = new DifferentialDrivetrainSim(DCMotor.getNeo550(2), // 2 NEO motors on each side of the drivetrain.
           7.29, // 7.29:1 gearing reduction.
           7.5, // MOI of 7.5 kg m^2 (from CAD model).
           60.0, // The mass of the robot is 60 kg.
@@ -70,11 +92,13 @@ public class Drivetrain extends SubsystemBase {
 
   @Override
   public void periodic() {
-    /*
-     * m_odometry.update(m_gyro.getRotation2d(), m_leftEncoder.getDistance(),
-     * m_rightEncoder.getDistance());
-     * m_field.setRobotPose(m_odometry.getPoseMeters());
-     */
+     m_odometry.update(
+      m_gyro.getRotation2d(),
+      m_leftEncoder.getDistance(),
+      m_rightEncoder.getDistance()
+     );
+
+     m_field.setRobotPose(m_odometry.getPoseMeters());
   }
 
   @Override
@@ -82,12 +106,8 @@ public class Drivetrain extends SubsystemBase {
     m_driveSim.setInputs(m_leftMotor.get() * RobotController.getInputVoltage(),
         m_rightMotor.get() * RobotController.getInputVoltage());
 
-    // Advance the model by 20 ms. Note that if you are running this
-    // subsystem in a separate thread or have changed the nominal timestep
-    // of TimedRobot, this value needs to match it.
     m_driveSim.update(0.02);
 
-    // Update all of our sensors.
     m_leftEncoderSim.setDistance(m_driveSim.getLeftPositionMeters());
     m_leftEncoderSim.setRate(m_driveSim.getLeftVelocityMetersPerSecond());
     m_rightEncoderSim.setDistance(m_driveSim.getRightPositionMeters());

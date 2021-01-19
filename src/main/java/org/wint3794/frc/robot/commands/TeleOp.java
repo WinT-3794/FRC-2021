@@ -36,7 +36,8 @@ public class TeleOp extends CommandBase {
   @Override
   public void execute() {
     m_drivetrain.getDrive().arcadeDrive(
-      m_driverController.getY(Hand.kLeft), m_driverController.getX(Hand.kRight)
+      m_driverController.getX(Hand.kRight),
+      -m_driverController.getY(Hand.kLeft)
     );
   }
 
