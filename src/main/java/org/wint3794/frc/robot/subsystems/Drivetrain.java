@@ -7,8 +7,13 @@ package org.wint3794.frc.robot.subsystems;
 import net.thefletcher.revrobotics.CANSparkMax;
 import net.thefletcher.revrobotics.enums.MotorType;
 
+import com.kauailabs.navx.frc.AHRS;
+
 import org.wint3794.frc.robot.Robot;
 
+import edu.wpi.first.hal.SimDevice;
+import edu.wpi.first.hal.SimDouble;
+import edu.wpi.first.hal.simulation.SimDeviceDataJNI;
 import edu.wpi.first.wpilibj.AnalogGyro;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.PWMSparkMax;
@@ -17,6 +22,7 @@ import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
+import edu.wpi.first.wpilibj.simulation.ADXRS450_GyroSim;
 import edu.wpi.first.wpilibj.simulation.AnalogGyroSim;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
 import edu.wpi.first.wpilibj.simulation.EncoderSim;
@@ -49,13 +55,12 @@ public class Drivetrain extends SubsystemBase {
   private EncoderSim m_leftEncoderSim = new EncoderSim(m_leftEncoder);
   private EncoderSim m_rightEncoderSim = new EncoderSim(m_rightEncoder);
 
-  private AnalogGyro m_gyro = new AnalogGyro(1);
-  private AnalogGyroSim m_gyroSim = new AnalogGyroSim(m_gyro);
+  private AHRS m_ahrs = new AHRS();
 
   private Field2d m_field = new Field2d();
 
   private DifferentialDriveOdometry m_odometry = new DifferentialDriveOdometry(
-    m_gyro.getRotation2d(),
+    m_ahrs.getRotation2d(),
     new Pose2d(0, 0, new Rotation2d())
   );
 
@@ -93,7 +98,7 @@ public class Drivetrain extends SubsystemBase {
   @Override
   public void periodic() {
      m_odometry.update(
-      m_gyro.getRotation2d(),
+      m_ahrs.getRotation2d(),
       m_leftEncoder.getDistance(),
       m_rightEncoder.getDistance()
      );
@@ -112,7 +117,10 @@ public class Drivetrain extends SubsystemBase {
     m_leftEncoderSim.setRate(m_driveSim.getLeftVelocityMetersPerSecond());
     m_rightEncoderSim.setDistance(m_driveSim.getRightPositionMeters());
     m_rightEncoderSim.setRate(m_driveSim.getRightVelocityMetersPerSecond());
-    m_gyroSim.setAngle(-m_driveSim.getHeading().getDegrees());
+
+    int dev = SimDeviceDataJNI.getSimDeviceHandle("navX-Sensor[0]");
+    SimDouble angle = new SimDouble(SimDeviceDataJNI.getSimValueHandle(dev, "Yaw"));
+    angle.set(-m_driveSim.getHeading().getDegrees());
   }
 
   public DifferentialDrive getDrive() {
