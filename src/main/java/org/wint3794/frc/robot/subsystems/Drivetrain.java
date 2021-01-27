@@ -4,31 +4,27 @@
 
 package org.wint3794.frc.robot.subsystems;
 
-import net.thefletcher.revrobotics.CANSparkMax;
-import net.thefletcher.revrobotics.enums.MotorType;
-
 import com.kauailabs.navx.frc.AHRS;
+import org.wint3794.frc.robot.hardware.CANSparkMaxController;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import org.wint3794.frc.robot.Robot;
+import org.wint3794.frc.robot.util.Constants;
 
-import edu.wpi.first.hal.SimDevice;
 import edu.wpi.first.hal.SimDouble;
 import edu.wpi.first.hal.simulation.SimDeviceDataJNI;
-import edu.wpi.first.wpilibj.AnalogGyro;
 import edu.wpi.first.wpilibj.Encoder;
-import edu.wpi.first.wpilibj.PWMSparkMax;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
-import edu.wpi.first.wpilibj.simulation.ADXRS450_GyroSim;
-import edu.wpi.first.wpilibj.simulation.AnalogGyroSim;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
 import edu.wpi.first.wpilibj.simulation.EncoderSim;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.util.Units;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpiutil.math.VecBuilder;
@@ -37,16 +33,11 @@ public class Drivetrain extends SubsystemBase {
 
   private DifferentialDrivetrainSim m_driveSim;
 
-  private CANSparkMax m_leftMotor = new CANSparkMax(1, MotorType.kBrushless);
-  private CANSparkMax m_rightMotor = new CANSparkMax(2, MotorType.kBrushless);
+  private CANSparkMaxController m_leftMotor = new CANSparkMaxController(1, MotorType.kBrushless);
+  private CANSparkMaxController m_rightMotor = new CANSparkMaxController(2, MotorType.kBrushless);
    
-  private CANSparkMax m_leftMotorSlave = new CANSparkMax(3,MotorType.kBrushless); 
-  private CANSparkMax m_rightMotorSlave = new CANSparkMax(4, MotorType.kBrushless);
-
-   /*
-  private PWMSparkMax m_leftMotor = new PWMSparkMax(0);
-  private PWMSparkMax m_rightMotor = new PWMSparkMax(1);
-  */
+  private CANSparkMaxController m_leftMotorSlave = new CANSparkMaxController(3,MotorType.kBrushless); 
+  private CANSparkMaxController m_rightMotorSlave = new CANSparkMaxController(4, MotorType.kBrushless);
 
   private DifferentialDrive m_drive = new DifferentialDrive(m_leftMotor, m_rightMotor);
 
@@ -74,19 +65,22 @@ public class Drivetrain extends SubsystemBase {
     if (Robot.isReal()) {
 
     } else {
-      m_driveSim = new DifferentialDrivetrainSim(DCMotor.getNeo550(2), // 2 NEO motors on each side of the drivetrain.
-          7.29, // 7.29:1 gearing reduction.
-          7.5, // MOI of 7.5 kg m^2 (from CAD model).
-          60.0, // The mass of the robot is 60 kg.
-          Units.inchesToMeters(3), // The robot uses 3" radius wheels.
-          0.7112, // The track width is 0.7112 meters.
+      m_driveSim = new DifferentialDrivetrainSim(
+        DCMotor.getNEO(2),       // 2 NEO motors on each side of the drivetrain.
+        7.29,                    // 7.29:1 gearing reduction.
+        7.5,                     // MOI of 7.5 kg m^2 (from CAD model).
+        60.0,                    // The mass of the robot is 60 kg.
+        Units.inchesToMeters(3), // The robot uses 3" radius wheels.
+        0.7112,                  // The track width is 0.7112 meters.
+        VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005));
 
-          // The standard deviations for measurement noise:
-          // x and y: 0.001 m
-          // heading: 0.001 rad
-          // l and r velocity: 0.1 m/s
-          // l and r position: 0.005 m
-          VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005));
+      /*m_driveSim = new DifferentialDrivetrainSim(
+        LinearSystemId.identifyDrivetrainSystem(Constants.KvLinear, Constants.KaLinear, Constants.KvAngular, Constants.KaAngular),
+        DCMotor.getNEO(3),
+        0.7112,
+        7.29,
+        Units.inchesToMeters(3),
+        VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005));*/
     }
 
     m_leftEncoder.setDistancePerPulse(2 * Math.PI * 10 / 4096);
