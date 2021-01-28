@@ -15,16 +15,20 @@ import edu.wpi.first.hal.SimDouble;
 import edu.wpi.first.hal.simulation.SimDeviceDataJNI;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.SlewRateLimiter;
+import edu.wpi.first.wpilibj.SpeedControllerGroup;
+import edu.wpi.first.wpilibj.controller.PIDController;
+import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
-import edu.wpi.first.wpilibj.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
+import edu.wpi.first.wpilibj.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
 import edu.wpi.first.wpilibj.simulation.EncoderSim;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.system.plant.DCMotor;
-import edu.wpi.first.wpilibj.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.util.Units;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpiutil.math.VecBuilder;
@@ -33,13 +37,13 @@ public class Drivetrain extends SubsystemBase {
 
   private DifferentialDrivetrainSim m_driveSim;
 
-  private CANSparkMaxController m_leftMotor = new CANSparkMaxController(0, MotorType.kBrushless);
-  private CANSparkMaxController m_rightMotor = new CANSparkMaxController(1, MotorType.kBrushless);
-   
-  private CANSparkMaxController m_leftMotorSlave = new CANSparkMaxController(2,MotorType.kBrushless); 
-  private CANSparkMaxController m_rightMotorSlave = new CANSparkMaxController(3, MotorType.kBrushless);
+  private CANSparkMaxController m_leftMotor = new CANSparkMaxController(0, MotorType.kBrushless);   
+  private CANSparkMaxController m_leftMotorSlave1 = new CANSparkMaxController(1,MotorType.kBrushless); 
+  private CANSparkMaxController m_leftMotorSlave2 = new CANSparkMaxController(2,MotorType.kBrushless); 
 
-  private DifferentialDrive m_drive = new DifferentialDrive(m_leftMotor, m_rightMotor);
+  private CANSparkMaxController m_rightMotor = new CANSparkMaxController(3, MotorType.kBrushless);
+  private CANSparkMaxController m_rightMotorSlave1 = new CANSparkMaxController(4, MotorType.kBrushless);
+  private CANSparkMaxController m_rightMotorSlave2 = new CANSparkMaxController(5, MotorType.kBrushless);
 
   private Encoder m_leftEncoder = new Encoder(0, 1, false);
   private Encoder m_rightEncoder = new Encoder(2, 3, true);
@@ -48,40 +52,47 @@ public class Drivetrain extends SubsystemBase {
 
   private AHRS m_ahrs = new AHRS();
 
+  private final PIDController m_leftPIDController = new PIDController(8.5, 0, 0);
+  private final PIDController m_rightPIDController = new PIDController(8.5, 0, 0);
+
+  private final SlewRateLimiter m_speedLimiter = new SlewRateLimiter(3);
+  private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(3);
+
   private Field2d m_field = new Field2d();
 
-  private DifferentialDriveOdometry m_odometry = new DifferentialDriveOdometry(
-    m_ahrs.getRotation2d()
-  );
+  private final DifferentialDriveKinematics m_kinematics =
+      new DifferentialDriveKinematics(Constants.kTrackWidth);
+
+  private DifferentialDriveOdometry m_odometry = new DifferentialDriveOdometry(m_ahrs.getRotation2d());
+
+  private final SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(1, 3);
+
+  private SpeedControllerGroup m_leftMotors = new SpeedControllerGroup(
+    m_leftMotor, m_leftMotorSlave1, m_leftMotorSlave2);
+
+  private SpeedControllerGroup m_rightMotors = new SpeedControllerGroup(
+    m_rightMotor, m_rightMotorSlave1, m_rightMotorSlave2);
 
   /** Creates a new Drivetrain. */
   public Drivetrain() {
-    m_leftMotorSlave.follow(m_leftMotor); 
-    m_rightMotorSlave.follow(m_rightMotor);
-     
-    if (Robot.isReal()) {
-
-    } else {
+    if (Robot.isSimulation())  {
       m_driveSim = new DifferentialDrivetrainSim(
-        DCMotor.getNEO(2),       // 2 NEO motors on each side of the drivetrain.
+        DCMotor.getNEO(3),       // 2 NEO motors on each side of the drivetrain.
         7.29,                    // 7.29:1 gearing reduction.
         7.5,                     // MOI of 7.5 kg m^2 (from CAD model).
-        60.0,                    // The mass of the robot is 60 kg.
+        45.0,                    // The mass of the robot is 60 kg.
         Units.inchesToMeters(3), // The robot uses 3" radius wheels.
         0.7112,                  // The track width is 0.7112 meters.
         VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005));
-
-      /*m_driveSim = new DifferentialDrivetrainSim(
-        LinearSystemId.identifyDrivetrainSystem(Constants.KvLinear, Constants.KaLinear, Constants.KvAngular, Constants.KaAngular),
-        DCMotor.getNEO(3),
-        0.7112,
-        7.29,
-        Units.inchesToMeters(3),
-        VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005));*/
     }
 
-    m_leftEncoder.setDistancePerPulse(2 * Math.PI * 10 / 4096);
-    m_rightEncoder.setDistancePerPulse(2 * Math.PI * 10 / 4096);
+    m_leftEncoder.setDistancePerPulse(2 * Math.PI * Constants.kWheelRadius / Constants.kEncoderResolution);
+    m_rightEncoder.setDistancePerPulse(2 * Math.PI * Constants.kWheelRadius / Constants.kEncoderResolution);
+
+    m_leftEncoder.reset();
+    m_rightEncoder.reset();
+
+    m_rightMotors.setInverted(true);
 
     SmartDashboard.putData("Field", m_field);
   }
@@ -114,7 +125,38 @@ public class Drivetrain extends SubsystemBase {
     angle.set(-m_driveSim.getHeading().getDegrees());
   }
 
-  public DifferentialDrive getDrive() {
-    return m_drive;
+  private void setSpeeds(DifferentialDriveWheelSpeeds speeds) {
+    var leftFeedforward = m_feedforward.calculate(speeds.leftMetersPerSecond);
+    var rightFeedforward = m_feedforward.calculate(speeds.rightMetersPerSecond);
+
+    double leftOutput =
+        m_leftPIDController.calculate(m_leftEncoder.getRate(), speeds.leftMetersPerSecond);
+    double rightOutput =
+        m_rightPIDController.calculate(m_rightEncoder.getRate(), speeds.rightMetersPerSecond);
+
+    m_leftMotors.setVoltage(leftOutput + leftFeedforward);
+    m_rightMotors.setVoltage(rightOutput + rightFeedforward);
+  }
+
+  public void resetOdometry(Pose2d pose) {
+    m_leftEncoder.reset();
+    m_rightEncoder.reset();
+    m_driveSim.setPose(pose);
+    m_odometry.resetPosition(pose, m_ahrs.getRotation2d());
+  }
+
+  public void drive(double speed, double rotation) {
+    setSpeeds(m_kinematics.toWheelSpeeds(new ChassisSpeeds(speed, 0, rotation)));
+  }
+
+  public void stop(){
+    this.m_leftMotors.stopMotor();
+    this.m_rightMotors.stopMotor();
+  }
+
+  public void arcadeDrive(double speed, double rotation) {
+    double xSpeed = m_speedLimiter.calculate(speed) * Constants.kMaxSpeed;
+    double rot = -m_rotLimiter.calculate(rotation) * Constants.kMaxAngularSpeed;
+    drive(xSpeed, rot);
   }
 }

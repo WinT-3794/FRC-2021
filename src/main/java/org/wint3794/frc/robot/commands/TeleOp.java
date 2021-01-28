@@ -35,7 +35,7 @@ public class TeleOp extends CommandBase {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_drivetrain.getDrive().arcadeDrive(
+    m_drivetrain.arcadeDrive(
       -m_driverController.getY(Hand.kLeft),
       m_driverController.getX(Hand.kLeft)
     );
@@ -43,7 +43,9 @@ public class TeleOp extends CommandBase {
 
   // Called once the command ends or is interrupted.
   @Override
-  public void end(boolean interrupted) {}
+  public void end(boolean interrupted) {
+    m_drivetrain.stop();
+  }
 
   // Returns true when the command should end.
   @Override
