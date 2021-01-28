@@ -29,7 +29,6 @@ import edu.wpi.first.wpilibj.simulation.EncoderSim;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.system.plant.DCMotor;
-import edu.wpi.first.wpilibj.util.Units;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpiutil.math.VecBuilder;
 
@@ -37,23 +36,34 @@ public class Drivetrain extends SubsystemBase {
 
   private DifferentialDrivetrainSim m_driveSim;
 
-  private CANSparkMaxController m_leftMotor = new CANSparkMaxController(0, MotorType.kBrushless);   
-  private CANSparkMaxController m_leftMotorSlave1 = new CANSparkMaxController(1,MotorType.kBrushless); 
-  private CANSparkMaxController m_leftMotorSlave2 = new CANSparkMaxController(2,MotorType.kBrushless); 
+  private CANSparkMaxController m_leftMotor =
+    new CANSparkMaxController(Constants.Drivetrain.kMotorIDs[0][0], MotorType.kBrushless);   
+  private CANSparkMaxController m_leftMotorSlave1 =
+    new CANSparkMaxController(Constants.Drivetrain.kMotorIDs[0][1],MotorType.kBrushless); 
+  private CANSparkMaxController m_leftMotorSlave2 =
+    new CANSparkMaxController(Constants.Drivetrain.kMotorIDs[0][2],MotorType.kBrushless); 
 
-  private CANSparkMaxController m_rightMotor = new CANSparkMaxController(3, MotorType.kBrushless);
-  private CANSparkMaxController m_rightMotorSlave1 = new CANSparkMaxController(4, MotorType.kBrushless);
-  private CANSparkMaxController m_rightMotorSlave2 = new CANSparkMaxController(5, MotorType.kBrushless);
+  private CANSparkMaxController m_rightMotor = 
+    new CANSparkMaxController(Constants.Drivetrain.kMotorIDs[1][0], MotorType.kBrushless);
+  private CANSparkMaxController m_rightMotorSlave1 = 
+    new CANSparkMaxController(Constants.Drivetrain.kMotorIDs[1][1], MotorType.kBrushless);
+  private CANSparkMaxController m_rightMotorSlave2 = 
+    new CANSparkMaxController(Constants.Drivetrain.kMotorIDs[1][2], MotorType.kBrushless);
 
-  private Encoder m_leftEncoder = new Encoder(0, 1, false);
-  private Encoder m_rightEncoder = new Encoder(2, 3, true);
+  private Encoder m_leftEncoder = 
+    new Encoder(Constants.Drivetrain.kLeftEncoderPorts[0], Constants.Drivetrain.kLeftEncoderPorts[1], false);
+  private Encoder m_rightEncoder = 
+    new Encoder(Constants.Drivetrain.kRightEncoderPorts[0], Constants.Drivetrain.kRightEncoderPorts[1], true);
+
   private EncoderSim m_leftEncoderSim = new EncoderSim(m_leftEncoder);
   private EncoderSim m_rightEncoderSim = new EncoderSim(m_rightEncoder);
 
   private AHRS m_ahrs = new AHRS();
 
-  private final PIDController m_leftPIDController = new PIDController(8.5, 0, 0);
-  private final PIDController m_rightPIDController = new PIDController(8.5, 0, 0);
+  private final PIDController m_leftPIDController = 
+    new PIDController(Constants.Drivetrain.kPID[0], Constants.Drivetrain.kPID[1], Constants.Drivetrain.kPID[2]);
+  private final PIDController m_rightPIDController =
+    new PIDController(Constants.Drivetrain.kPID[0], Constants.Drivetrain.kPID[1], Constants.Drivetrain.kPID[2]);
 
   private final SlewRateLimiter m_speedLimiter = new SlewRateLimiter(3);
   private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(3);
@@ -61,7 +71,7 @@ public class Drivetrain extends SubsystemBase {
   private Field2d m_field = new Field2d();
 
   private final DifferentialDriveKinematics m_kinematics =
-      new DifferentialDriveKinematics(Constants.kTrackWidth);
+      new DifferentialDriveKinematics(Constants.Drivetrain.kTrackWidth);
 
   private DifferentialDriveOdometry m_odometry = new DifferentialDriveOdometry(m_ahrs.getRotation2d());
 
@@ -77,17 +87,17 @@ public class Drivetrain extends SubsystemBase {
   public Drivetrain() {
     if (Robot.isSimulation())  {
       m_driveSim = new DifferentialDrivetrainSim(
-        DCMotor.getNEO(3),       // 2 NEO motors on each side of the drivetrain.
-        7.29,                    // 7.29:1 gearing reduction.
-        7.5,                     // MOI of 7.5 kg m^2 (from CAD model).
-        45.0,                    // The mass of the robot is 60 kg.
-        Units.inchesToMeters(3), // The robot uses 3" radius wheels.
-        0.7112,                  // The track width is 0.7112 meters.
+        DCMotor.getNEO(3),
+        Constants.Drivetrain.kGearingReduction,
+        Constants.Drivetrain.kMOI,
+        Constants.Drivetrain.kMass,
+        Constants.Drivetrain.kWheelRadius,
+        Constants.Drivetrain.kTrackWidth,
         VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005));
     }
 
-    m_leftEncoder.setDistancePerPulse(2 * Math.PI * Constants.kWheelRadius / Constants.kEncoderResolution);
-    m_rightEncoder.setDistancePerPulse(2 * Math.PI * Constants.kWheelRadius / Constants.kEncoderResolution);
+    m_leftEncoder.setDistancePerPulse(Constants.Drivetrain.kDistancePerPulse);
+    m_rightEncoder.setDistancePerPulse(Constants.Drivetrain.kDistancePerPulse);
 
     m_leftEncoder.reset();
     m_rightEncoder.reset();
@@ -126,8 +136,8 @@ public class Drivetrain extends SubsystemBase {
   }
 
   private void setSpeeds(DifferentialDriveWheelSpeeds speeds) {
-    var leftFeedforward = m_feedforward.calculate(speeds.leftMetersPerSecond);
-    var rightFeedforward = m_feedforward.calculate(speeds.rightMetersPerSecond);
+    double leftFeedforward = m_feedforward.calculate(speeds.leftMetersPerSecond);
+    double rightFeedforward = m_feedforward.calculate(speeds.rightMetersPerSecond);
 
     double leftOutput =
         m_leftPIDController.calculate(m_leftEncoder.getRate(), speeds.leftMetersPerSecond);
@@ -155,8 +165,8 @@ public class Drivetrain extends SubsystemBase {
   }
 
   public void arcadeDrive(double speed, double rotation) {
-    double xSpeed = m_speedLimiter.calculate(speed) * Constants.kMaxSpeed;
-    double rot = -m_rotLimiter.calculate(rotation) * Constants.kMaxAngularSpeed;
+    double xSpeed = m_speedLimiter.calculate(speed) * Constants.Drivetrain.kMaxSpeed;
+    double rot = -m_rotLimiter.calculate(rotation) * Constants.Drivetrain.kMaxAngularSpeed;
     drive(xSpeed, rot);
   }
 }
