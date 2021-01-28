@@ -33,16 +33,16 @@ public class Drivetrain extends SubsystemBase {
 
   private DifferentialDrivetrainSim m_driveSim;
 
-  private CANSparkMaxController m_leftMotor = new CANSparkMaxController(1, MotorType.kBrushless);
-  private CANSparkMaxController m_rightMotor = new CANSparkMaxController(2, MotorType.kBrushless);
+  private CANSparkMaxController m_leftMotor = new CANSparkMaxController(0, MotorType.kBrushless);
+  private CANSparkMaxController m_rightMotor = new CANSparkMaxController(1, MotorType.kBrushless);
    
-  private CANSparkMaxController m_leftMotorSlave = new CANSparkMaxController(3,MotorType.kBrushless); 
-  private CANSparkMaxController m_rightMotorSlave = new CANSparkMaxController(4, MotorType.kBrushless);
+  private CANSparkMaxController m_leftMotorSlave = new CANSparkMaxController(2,MotorType.kBrushless); 
+  private CANSparkMaxController m_rightMotorSlave = new CANSparkMaxController(3, MotorType.kBrushless);
 
   private DifferentialDrive m_drive = new DifferentialDrive(m_leftMotor, m_rightMotor);
 
-  private Encoder m_leftEncoder = new Encoder(0, 1);
-  private Encoder m_rightEncoder = new Encoder(2, 3);
+  private Encoder m_leftEncoder = new Encoder(0, 1, false);
+  private Encoder m_rightEncoder = new Encoder(2, 3, true);
   private EncoderSim m_leftEncoderSim = new EncoderSim(m_leftEncoder);
   private EncoderSim m_rightEncoderSim = new EncoderSim(m_rightEncoder);
 
@@ -51,14 +51,11 @@ public class Drivetrain extends SubsystemBase {
   private Field2d m_field = new Field2d();
 
   private DifferentialDriveOdometry m_odometry = new DifferentialDriveOdometry(
-    m_ahrs.getRotation2d(),
-    new Pose2d(0, 0, new Rotation2d())
+    m_ahrs.getRotation2d()
   );
 
   /** Creates a new Drivetrain. */
   public Drivetrain() {
-
-    
     m_leftMotorSlave.follow(m_leftMotor); 
     m_rightMotorSlave.follow(m_rightMotor);
      
@@ -103,7 +100,7 @@ public class Drivetrain extends SubsystemBase {
   @Override
   public void simulationPeriodic() {
     m_driveSim.setInputs(m_leftMotor.get() * RobotController.getInputVoltage(),
-        m_rightMotor.get() * RobotController.getInputVoltage());
+        -m_rightMotor.get() * RobotController.getInputVoltage());
 
     m_driveSim.update(0.02);
 
