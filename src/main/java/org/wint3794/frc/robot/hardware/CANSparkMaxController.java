@@ -1,3 +1,12 @@
+/*
+ * File: CANSparkMaxController.java
+ * Project: Robot Programming 2021
+ * File Created: Tuesday, 26th January 2021 8:35 pm
+ * Author: Manuel Diaz and Obed Garcia
+ * 
+ * Copyright (c) 2021 WinT 3794. Under MIT License.
+ */
+
 package org.wint3794.frc.robot.hardware;
 
 import com.revrobotics.CANSparkMax;

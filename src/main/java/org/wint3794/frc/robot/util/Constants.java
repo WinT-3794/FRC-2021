@@ -1,3 +1,12 @@
+/*
+ * File: Constants.java
+ * Project: Robot Programming 2021
+ * File Created: Tuesday, 26th January 2021 6:19 pm
+ * Author: Manuel Diaz and Obed Garcia
+ * 
+ * Copyright (c) 2021 WinT 3794. Under MIT License.
+ */
+
 package org.wint3794.frc.robot.util;
 
 import edu.wpi.first.wpilibj.util.Units;

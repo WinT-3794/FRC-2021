@@ -1,3 +1,12 @@
+/*
+ * File: Drivetrain.java
+ * Project: Robot Programming 2021
+ * File Created: Tuesday, 26th January 2021 2:47 pm
+ * Author: Manuel Diaz and Obed Garcia
+ * 
+ * Copyright (c) 2021 WinT 3794. Under MIT License.
+ */
+
 // Copyright (c) FIRST and other WPILib contributors.
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.

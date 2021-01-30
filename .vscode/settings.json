@@ -13,5 +13,26 @@
     "**/.settings": true,
     "**/.factorypath": true,
     "**/*~": true
-  }
+  },
+  "java.dependency.packagePresentation": "hierarchical",
+  "psi-header.config": {
+    "license": "MIT",
+    "author": "Manuel Diaz and Obed Garcia",
+    "company": "WinT 3794",
+    "forceToTop": true,
+    "blankLinesAfter": 1
+  },
+  "psi-header.templates": [
+		{
+			"language": "*",
+			"template": [
+				"File: <<filename>>",
+				"Project: Robot Programming <<year>>",
+				"File Created: <<filecreated('dddd, Do MMMM YYYY h:mm a')>>",
+				"Author: <<author>>",
+				"",
+				"Copyright (c) <<year>> <<company>>. Under MIT License."
+			]
+		}
+	]
 }
